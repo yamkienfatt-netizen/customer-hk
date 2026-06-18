@@ -26,7 +26,7 @@ class PersonalizePlugin implements MiddlewarePlugin {
       // Configuration for your Sitecore Experience Edge endpoint
       edgeConfig: {
         clientFactory,
-        cacheEnabled: process.env.PERSONALIZE_MIDDLEWARE_EDGE_CACHE_ENABLED === 'true',
+        cacheEnabled: process.env.PERSONALIZE_MIDDLEWARE_EDGE_CACHE_ENABLED === 'false',
         cacheTimeout:
           (process.env.PERSONALIZE_MIDDLEWARE_EDGE_CACHE_TIMEOUT &&
             parseInt(process.env.PERSONALIZE_MIDDLEWARE_EDGE_CACHE_TIMEOUT)) ||
