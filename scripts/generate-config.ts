@@ -53,9 +53,8 @@ const config = {};\n`;
 
   // Set configuration values, allowing override with environment variables
   Object.keys(config).forEach((prop) => {
-    configText += `config.${prop} = process.env.${constantCase(prop)} || '${config[
-      prop
-    ]?.trim()}';\n`;
+    const value = config[prop] ? config[prop]?.trim() : '';
+    configText += `config.${prop} = process.env.${constantCase(prop)} || '${value}';\n`;
   });
 
   configText += `module.exports = config;`;

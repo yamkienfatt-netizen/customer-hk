@@ -60,12 +60,12 @@ const nextConfig = {
     // When in connected mode we want to proxy Sitecore paths off to Sitecore
     return [
       // API endpoints
-      jssConfig.sitecoreApiHost && {
+      jssConfig.sitecoreApiHost && jssConfig.sitecoreApiHost !== 'undefined' && {
         source: '/sitecore/api/:path*',
         destination: `${jssConfig.sitecoreApiHost}/sitecore/api/:path*`,
       },
       // media items
-      jssConfig.sitecoreApiHost && {
+      jssConfig.sitecoreApiHost && jssConfig.sitecoreApiHost !== 'undefined' && {
         source: '/-/:path*',
         destination: `${jssConfig.sitecoreApiHost}/-/:path*`,
       },
@@ -75,7 +75,7 @@ const nextConfig = {
         destination: '/api/healthz',
       },
       // rewrite for Sitecore service pages
-      jssConfig.sitecoreApiHost && {
+      jssConfig.sitecoreApiHost && jssConfig.sitecoreApiHost !== 'undefined' && {
         source: '/sitecore/service/:path*',
         destination: `${jssConfig.sitecoreApiHost}/sitecore/service/:path*`,
       },
