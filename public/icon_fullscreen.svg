@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <g id="Group_4961" data-name="Group 4961" transform="translate(-107.5 -714.5)">
+    <g id="Group_4957" data-name="Group 4957" transform="translate(0 1)">
+      <line id="Line_517" data-name="Line 517" x2="4" transform="translate(108.5 714.5)" fill="none" stroke="#fff" stroke-linecap="square" stroke-width="2"/>
+      <line id="Line_518" data-name="Line 518" x2="4" transform="translate(108.5 714.5) rotate(90)" fill="none" stroke="#fff" stroke-linecap="square" stroke-width="2"/>
+    </g>
+    <g id="Group_4958" data-name="Group 4958" transform="translate(118.5 715.5)">
+      <line id="Line_517-2" data-name="Line 517" x1="4" fill="none" stroke="#fff" stroke-linecap="square" stroke-width="2"/>
+      <line id="Line_518-2" data-name="Line 518" x2="4" transform="translate(4) rotate(90)" fill="none" stroke="#fff" stroke-linecap="square" stroke-width="2"/>
+    </g>
+    <g id="Group_4959" data-name="Group 4959" transform="translate(108.5 725.5)">
+      <line id="Line_517-3" data-name="Line 517" x2="4" transform="translate(0 4)" fill="none" stroke="#fff" stroke-linecap="square" stroke-width="2"/>
+      <line id="Line_518-3" data-name="Line 518" x2="4" transform="translate(0 4) rotate(-90)" fill="none" stroke="#fff" stroke-linecap="square" stroke-width="2"/>
+    </g>
+    <g id="Group_4960" data-name="Group 4960" transform="translate(118.5 725.5)">
+      <line id="Line_517-4" data-name="Line 517" x1="4" transform="translate(0 4)" fill="none" stroke="#fff" stroke-linecap="square" stroke-width="2"/>
+      <line id="Line_518-4" data-name="Line 518" x2="4" transform="translate(4 4) rotate(-90)" fill="none" stroke="#fff" stroke-linecap="square" stroke-width="2"/>
+    </g>
+  </g>
+</svg>

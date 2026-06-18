@@ -1,0 +1,21 @@
+
+OrganizationId: org_VQEOABCJ1DQh5LIn
+EnvironmentId: 3H298QXxBJim9CHDQHJe3F
+DeploymentId: 4fJhWZE7NyGtsoVm62OkiB
+
+Provisioning - Completed
+12/29/2023 08:54:36 +00:00|INFO|Starting environment 'SIT' creation.
+12/29/2023 08:54:37 +00:00|INFO|All required resources have been provisioned.
+
+
+Build - Failed
+12/29/2023 08:54:37 +00:00|INFO|Starting build because source code was provided.
+12/29/2023 08:54:45 +00:00|INFO|Building Solution
+12/29/2023 08:54:46 +00:00|ERROR|Starting downloading artifacts
+12/29/2023 08:54:46 +00:00|ERROR|Downloaded artifacts 0.4377843 seconds
+12/29/2023 08:54:46 +00:00|ERROR|Extracted source artifacts.
+12/29/2023 08:54:46 +00:00|INFO|Invalid JSON primitive: .
+12/29/2023 08:54:46 +00:00|ERROR|Build has failed.
+12/29/2023 08:54:46 +00:00|INFO|Pushed the webhook with a Failed job status
+
+

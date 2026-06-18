@@ -1,0 +1,524 @@
+import React, { useEffect, useState } from 'react';
+import InputField from 'components/easthotels/Form/FormFields/InputField';
+import { useI18n } from 'next-localization';
+import { DICTIONARY_CONSTANT } from '@/utilities/DictionaryConstant';
+import TextAreaField from './FormFields/TextAreaField';
+import SelectField from './FormFields/SelectField';
+import DatePickerField from './FormFields/DatePickerField';
+import { format, setHours, setMinutes } from 'date-fns';
+import { EventFormProps } from '@/props/Form/EventFormProps';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { Form } from '@/components/ui/form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import LoadingButton from '../CustomTypes/Components/LoadingButton';
+import Typography from '../Typography/Typography';
+import {
+  GetServerSideComponentProps,
+  LayoutServicePageState,
+  useComponentProps,
+  useSitecoreContext,
+  withDatasourceCheck,
+} from '@sitecore-jss/sitecore-jss-nextjs';
+import { Text as ScText, RichText as ScRichText } from '@sitecore-jss/sitecore-jss-nextjs';
+import { Element, scroller } from 'react-scroll';
+import RichTextTypography from '../Typography/RichTextTypography';
+import {
+  FormKeyValueConfigurationsProps,
+  KeyValueConfiguration,
+} from '@/props/Graphql/FormKVConfigurationProps';
+import { GetFormKVConfigurationService } from '@/graphql/FormKVConfiguration.service';
+import { useSelectedInquiryType } from '@/hooks/useSelectedInquiryType';
+import { SitecoreLanguageToCaptchaLanguageMapping } from '@/utilities/LanguageUtilities';
+import { useDispatch, useSelector } from 'react-redux';
+import { setAliyunCaptchaLoadedState } from 'lib/redux/features/scriptLoadStatus';
+import captchaLogoImg from 'src/images/1x1.png';
+
+type FormConfigurationServerProps = {
+  titleConfiguration: FormKeyValueConfigurationsProps;
+  venueConfiguration: FormKeyValueConfigurationsProps;
+};
+
+const Default = (eventFormProps: EventFormProps) => {
+  let captcha;
+
+  const getInstance = (instance) => {
+    captcha = instance;
+  };
+
+  const sceneId = process.env.CAPTCHA_SCENE_ID;
+  const prefixId = process.env.CAPTCHA_PREFIX_ID;
+
+  const { t, locale } = useI18n();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formStateType, setFormStateType] = useState('');
+  const [isCaptchaSuccess, setIsCaptchaSuccess] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(true);
+
+  const { sitecoreContext } = useSitecoreContext();
+  const isPageEditing = sitecoreContext.pageState === LayoutServicePageState.Edit;
+
+  const inquiryType = useSelectedInquiryType();
+  const isFormSelected = inquiryType === eventFormProps.rendering.dataSource;
+  const hideForm = !isPageEditing && !isFormSelected;
+
+  const formConfigurationServerProps = eventFormProps.rendering.uid
+    ? useComponentProps<FormConfigurationServerProps>(eventFormProps.rendering.uid)
+    : undefined;
+
+  const eventFormSchema = z.object({
+    title: z.string().refine((title: string) => title !== 'default', {
+      message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.MISSING_TITLE),
+    }),
+    firstName: z.string().min(1, {
+      message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.MISSING_FIRST_NAME),
+    }),
+    lastName: z.string().min(1, {
+      message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.MISSING_LAST_NAME),
+    }),
+    email: z.string().email({
+      message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.INVALID_EMAIL_ADDRESS),
+    }),
+    areaCode: z.string(),
+    contactNumber: z.string(),
+    eventDate: z
+      .date()
+      .transform((date) => format(date, 'yyyy-MM-dd'))
+      .nullable(),
+    eventTime: z.string().refine((eventTime: string) => eventTime !== '', {
+      message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.INVALID_TIME),
+    }),
+    estimatedGuestNum: z.coerce
+      .number({
+        invalid_type_error: t(DICTIONARY_CONSTANT.FORMS.ERRORS.INVALID_NUMBER),
+      })
+      .positive({
+        message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.POSITIVE_NUMBER),
+      })
+      .int({
+        message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.INTEGER),
+      }),
+    eventType: z.string().min(1, {
+      message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.INVALID_TYPE),
+    }),
+    heardFromWhere: z.string(),
+    preferredVenue: z.string().refine((value) => value !== 'default', {
+      message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.SELECT_VENUE),
+    }),
+    message: z.string().min(1, {
+      message: t(DICTIONARY_CONSTANT.FORMS.ERRORS.MISSING_MESSAGE),
+    }),
+    language: z.string(),
+    emailConfigurationId: z.string(),
+  });
+
+  const eventForm = useForm<z.infer<typeof eventFormSchema>>({
+    resolver: zodResolver(eventFormSchema),
+    defaultValues: {
+      title: 'default',
+      firstName: '',
+      lastName: '',
+      email: '',
+      areaCode: '',
+      contactNumber: '',
+      eventDate: null,
+      eventTime: '',
+      eventType: '',
+      heardFromWhere: '',
+      preferredVenue: 'default',
+      message: '',
+      language: locale(),
+      emailConfigurationId: eventFormProps.rendering.dataSource,
+    },
+  });
+
+  const [eventTimeOptions, setEventTimeOptions] = useState<{ key: string; value: string }[]>([]);
+
+  useEffect(() => {
+    let times = [];
+    let currentTime = new Date(0); // Start from 00:00
+
+    for (let hour = 0; hour < 24; hour++) {
+      currentTime = setHours(currentTime, hour);
+      currentTime = setMinutes(currentTime, 0);
+
+      times.push({
+        key: format(currentTime, 'h:mm a'),
+        value: format(currentTime, 'h:mm a'),
+      });
+
+      currentTime = setMinutes(currentTime, 30);
+
+      times.push({
+        key: format(currentTime, 'h:mm a'),
+        value: format(currentTime, 'h:mm a'),
+      });
+    }
+    setEventTimeOptions(times);
+  }, []);
+
+  const onSubmit = (values: z.infer<typeof eventFormSchema>) => {
+    try {
+      setIsLoading(true);
+      // Do something with the form values.
+      console.log(values);
+      fetch('/api/sendEmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log(data);
+          setFormStateType('success');
+          setIsLoading(false);
+          scroller.scrollTo('topOfSection-contactForms', {
+            duration: 1000,
+            smooth: true,
+            offset: -200,
+          });
+        });
+    } catch (err) {
+      console.log(err);
+      setIsLoading(false);
+      setFormStateType('error');
+    }
+  };
+
+  const TITLE_OPTIONS = [
+    { key: t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.TITLE), value: 'default' },
+  ];
+
+  formConfigurationServerProps?.titleConfiguration &&
+    formConfigurationServerProps.titleConfiguration?.item?.children.results.map(
+      (item: KeyValueConfiguration) => {
+        TITLE_OPTIONS.push({ key: item.key.value, value: item.value.value });
+      }
+    );
+
+  const VENUE_OPTIONS = [];
+
+  formConfigurationServerProps?.venueConfiguration &&
+    formConfigurationServerProps.venueConfiguration?.item?.children.results.map(
+      (item: KeyValueConfiguration) => {
+        VENUE_OPTIONS.push({ key: item.key.value, value: item.value.value });
+      }
+    );
+
+  const captchaVerifyCallback = async (captchaVerifyParam: any) => {
+    console.log(`captchaVerifyCallback: ${captchaVerifyParam}`);
+    var payload = {
+      captchaVerifyParam: captchaVerifyParam,
+    };
+
+    const captchaResp = await fetch('/api/captcha', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (captchaResp.status.toString() === '200') {
+      const captchaRespJson = await captchaResp.json();
+      return {
+        captchaResult: captchaRespJson.captchaVerifyResult,
+      };
+    } else {
+      return {
+        captchaResult: false,
+      };
+    }
+  };
+  // 验证通过后调用
+  const onBizResultCallback = (resp: Boolean) => {
+    console.log('onBizResultCallback', resp);
+    // Resp either true or false
+    if (resp) {
+      //Hide captcha and submit directly
+      // document.getElementById('event-captcha-b')?.remove();
+      setIsCaptchaSuccess(true);
+    } else {
+      //Show error message
+      console.log(`Invalid captcha. Please retry`);
+    }
+  };
+
+  const { aliyunCaptchaLoaded } = useSelector((state: any) => state.scriptLoadStatus);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (isFormSelected) {
+      if (aliyunCaptchaLoaded) {
+        setShowCaptcha(true);
+        const initCaptcha = () => {
+          window.initAliyunCaptcha({
+            SceneId: sceneId, // 场景ID。根据步骤二新建验证场景后，您可以在验证码场景列表，获取该场景的场景ID
+            prefix: prefixId, // 身份标。开通阿里云验证码2.0后，您可以在控制台概览页面的实例基本信息卡片区域，获取身份标
+            mode: 'embed', // 验证码模式。popup表示要集成的验证码模式为弹出式。无需修改
+            element: '#event-captcha-element', // 页面上预留的渲染验证码的元素，与原代码中预留的页面元素保持一致。
+            button: '#event-captcha-button', // 触发验证码弹窗的元素。button表示单击登录按钮后，触发captchaVerifyCallback函数。您可以根据实际使用的元素修改element的值
+            // captchaVerifyCallback: captchaVerifyCallback, // 业务请求(带验证码校验)回调函数，无需修改
+            // onBizResultCallback: onBizResultCallback, // 业务请求结果回调函数，无需修改
+            success: async (captchaVerifyParam: string) => {
+              const result = await captchaVerifyCallback(captchaVerifyParam);
+              if (!result?.captchaResult) {
+                initCaptcha();
+              }
+              onBizResultCallback(!!result?.captchaResult);
+              return !!result?.captchaResult;
+            },
+            fail: (error: any) => {
+              console.log(error);
+            },
+            getInstance: getInstance, // 绑定验证码实例函数，无需修改
+            slideStyle: {
+              width: 360,
+              height: 40,
+            }, // 滑块验证码样式，支持自定义宽度和高度，单位为px。其中，width最小值为320 px
+            language: SitecoreLanguageToCaptchaLanguageMapping[locale()], // 验证码语言类型，支持简体中文（cn）、繁体中文（tw）、英文（en）
+            immediate: true, // 完成验证后，是否立即发送验证请求（调用captchaVerifyCallback函数）
+            captchaLogoImg: captchaLogoImg.src,
+          });
+        };
+        initCaptcha();
+        return;
+      } else {
+        const script = document.createElement('script');
+        script.id = 'aliyun-captcha';
+        script.src = 'https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js';
+        document.body.appendChild(script);
+        script.onload = () => {
+          dispatch(setAliyunCaptchaLoadedState(true));
+          setShowCaptcha(true);
+        };
+      }
+    } else {
+      document.getElementById('aliyunCaptcha-mask')?.remove();
+      document.getElementById('aliyunCaptcha-window-popup')?.remove();
+      setShowCaptcha(false);
+    }
+
+    return () => {
+      // 必须删除相关元素，否则再次mount多次调用 initAliyunCaptcha 会导致多次回调 captchaVerifyCallback
+      document.getElementById('aliyunCaptcha-mask')?.remove();
+      document.getElementById('aliyunCaptcha-window-popup')?.remove();
+    };
+  }, [isFormSelected, aliyunCaptchaLoaded]);
+
+  // if (!isPageEditing && !isFormSelected) {
+  //   return null;
+  // }
+
+  return (
+    <div>
+      {(isPageEditing || !formStateType) &&
+        (eventFormProps.fields.Title.value ||
+          eventFormProps.fields.Description.value ||
+          eventFormProps.fields.Content.value) &&
+        isFormSelected && (
+          <div className="mt-[50px] max-w-[600px] space-y-8 lg:mx-0">
+            <Typography variant="p">
+              <ScText field={eventFormProps.fields.Title} />
+            </Typography>
+            <Typography variant="p">
+              <ScText field={eventFormProps.fields.Description} />
+            </Typography>
+            <RichTextTypography>
+              <ScRichText field={eventFormProps.fields.Content} />
+            </RichTextTypography>
+          </div>
+        )}
+
+      {(isPageEditing || formStateType == 'success') && isFormSelected && (
+        <div className="mt-[50px] max-w-[600px] lg:mx-0">
+          <RichTextTypography>
+            <ScRichText field={eventFormProps.fields.SuccessMessage} />
+          </RichTextTypography>
+        </div>
+      )}
+
+      {(isPageEditing || formStateType == 'error') && isFormSelected && (
+        <div className="mt-[50px] max-w-[600px] lg:mx-0">
+          <RichTextTypography>
+            <ScRichText field={eventFormProps.fields.ErrorMessage} />
+          </RichTextTypography>
+        </div>
+      )}
+
+      {!formStateType && (
+        <Form {...eventForm}>
+          <form
+            onSubmit={eventForm.handleSubmit(onSubmit)}
+            className={
+              (hideForm ? 'form-hidden' : '') + ' mt-[50px] max-w-[600px] space-y-8 lg:mx-0'
+            }
+          >
+            <>
+              <div className="w-[calc(50%-10px)]">
+                <SelectField
+                  control={eventForm.control}
+                  name="title"
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.TITLE)}
+                  placeholder={t(DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.TITLE)}
+                  options={TITLE_OPTIONS}
+                  required={true}
+                />
+              </div>
+
+              <div className="flex flex-row gap-[20px]">
+                <InputField
+                  control={eventForm.control}
+                  name="firstName"
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.FIRST_NAME)}
+                  required={true}
+                />
+                <InputField
+                  control={eventForm.control}
+                  name="lastName"
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.LAST_NAME)}
+                  required={true}
+                />
+              </div>
+
+              <InputField
+                control={eventForm.control}
+                name="email"
+                label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.EMAIL_ADDRESS)}
+                placeholder={t(DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.EMAIL_ADDRESS)}
+                required={true}
+              />
+              <div className="flex flex-row gap-[20px]">
+                <InputField
+                  control={eventForm.control}
+                  name="areaCode"
+                  placeholder={t(DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.AREA_CODE)}
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.AREA_CODE)}
+                  required={false}
+                />
+
+                <InputField
+                  control={eventForm.control}
+                  name="contactNumber"
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.CONTACT_NUMBER)}
+                  required={false}
+                />
+              </div>
+
+              <div className="flex flex-row gap-[20px]">
+                <DatePickerField
+                  control={eventForm.control}
+                  name="eventDate"
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.EVENT_DATE)}
+                />
+                <div className="w-full">
+                  <SelectField
+                    control={eventForm.control}
+                    name="eventTime"
+                    label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.EVENT_TIME)}
+                    placeholder={t(DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.EVENT_TIME)}
+                    options={eventTimeOptions}
+                    required={true}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-row gap-[20px]">
+                <InputField
+                  control={eventForm.control}
+                  name="estimatedGuestNum"
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.ESTIMATED_NUMBER_OF_GUESTS)}
+                  placeholder={t(
+                    DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.ESTIMATED_NUMBER_OF_GUESTS
+                  )}
+                  required={true}
+                />
+                <InputField
+                  control={eventForm.control}
+                  name="eventType"
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.EVENT_TYPE)}
+                  placeholder={t(DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.EVENT_TYPE)}
+                  required={true}
+                />
+              </div>
+
+              <div className="flex flex-row gap-[20px]">
+                <InputField
+                  control={eventForm.control}
+                  name="heardFromWhere"
+                  label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.HOW_DID_YOU_HEAR_ABOUT_US)}
+                  placeholder={t(
+                    DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.HOW_DID_YOU_HEAR_ABOUT_US
+                  )}
+                />
+                <div className="w-full">
+                  <SelectField
+                    control={eventForm.control}
+                    name="preferredVenue"
+                    label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.PREFERRED_VENUE)}
+                    placeholder={t(DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.PREFERRED_VENUE)}
+                    options={VENUE_OPTIONS}
+                    required={true}
+                  />
+                </div>
+              </div>
+
+              <TextAreaField
+                control={eventForm.control}
+                name="message"
+                label={t(DICTIONARY_CONSTANT.FORMS.FIELD_LABELS.MESSAGE)}
+                placeholder={t(DICTIONARY_CONSTANT.FORMS.FIELD_PLACEHOLDERS.MESSAGE)}
+                required
+              ></TextAreaField>
+
+              {showCaptcha && (
+                <div
+                  id="event-captcha-b"
+                  style={{
+                    display: isCaptchaSuccess ? 'none' : 'block',
+                  }}
+                >
+                  {/* TODO This captcha button is required for captcha to work. But it has nothing to do with the user. Need to use css styling to hide it */}
+                  <div id="event-captcha-button" className="invisible">
+                    点击弹出验证码B
+                  </div>
+                  <div id="event-captcha-element"></div>
+                </div>
+              )}
+
+              <LoadingButton loading={isLoading} isDisabled={!isCaptchaSuccess} type="submit">
+                <Typography variant="l1" fontColor={'white'} fontWeight="bold">
+                  {t(DICTIONARY_CONSTANT.FORMS.ACTION_LABELS.SUBMIT)}
+                </Typography>
+              </LoadingButton>
+            </>
+          </form>
+        </Form>
+      )}
+    </div>
+  );
+};
+
+export default withDatasourceCheck()<EventFormProps>(Default);
+
+export const getServerSideProps: GetServerSideComponentProps = async (rendering, layoutData) => {
+  const eventFormProps = rendering as EventFormProps;
+
+  var formTitleConfiguration = await GetFormKVConfigurationService(
+    eventFormProps.fields.TitleConfiguration.id,
+    layoutData?.sitecore?.context?.language!
+  );
+  var formVenueConfiguration = await GetFormKVConfigurationService(
+    eventFormProps.fields.VenueConfiguration.id,
+    layoutData?.sitecore?.context?.language!
+  );
+
+  const result: FormConfigurationServerProps = {
+    titleConfiguration: formTitleConfiguration,
+    venueConfiguration: formVenueConfiguration,
+  };
+
+  return result;
+};

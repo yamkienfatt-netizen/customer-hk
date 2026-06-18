@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #1d2021;
+      }
+    </style>
+  </defs>
+  <g id="Group_5236" data-name="Group 5236">
+    <path class="cls-1" d="m16,8C16,3.59,12.41,0,8,0S0,3.59,0,8s3.59,8,8,8,8-3.59,8-8Zm-8,7c-3.86,0-7-3.14-7-7S4.14,1,8,1s7,3.14,7,7-3.14,7-7,7Z"/>
+    <polygon class="cls-1" points="12.05 7.64 8.5 7.64 8.5 4.09 7.5 4.09 7.5 7.64 3.95 7.64 3.95 8.64 7.5 8.64 7.5 12.19 8.5 12.19 8.5 8.64 12.05 8.64 12.05 7.64"/>
+  </g>
+</svg>

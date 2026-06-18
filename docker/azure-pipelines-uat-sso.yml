@@ -1,0 +1,66 @@
+# Docker
+# Build a Docker image
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger:
+  branches:
+    include:
+    - feature-sso
+
+resources:
+- repo: self
+
+variables:
+  - group: sitecore-xm-cloud-uat-brandeasthotels
+  - group: sitecore-xm-cloud-edge-uat
+  - group: alicloud-auth-uat-brandeasthotels
+  - name: tag
+    value: '$(Build.BuildNumber)' 
+  - name: imageId
+    value: 'registry-intl.cn-shanghai.aliyuncs.com/easthotels-sso'
+  - name: vmImageName
+    value: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build image
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: DownloadSecureFile@1
+      name: scjssconfig
+      inputs:
+        secureFile: 'scjssconfig-uat-sso.json'
+    - task: CmdLine@2
+      inputs:
+        script: |
+          sed -i 's/\/sitecore\/api\/graph\/edge/\/api\/graphql\/v1/g' package.json
+          mv ./next.config-frontend.js ./next.config.js
+          mv $(scjssconfig.secureFilePath) ./scjssconfig.json
+
+    - task: Docker@2
+      displayName: Docker Image Build
+      inputs:
+        repository: '$(imageId)'
+        command: 'build'
+        Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+        addPipelineData: false
+        addBaseImageData: false
+        arguments: '--build-arg SITECORE_API_HOST=$(XMC_SITECORE_API_HOST) --build-arg SITECORE_API_KEY=$(XMC_SITECORE_API_KEY) --build-arg SITECORE_EDGE_CONTEXT_ID=$(XMC_SITECORE_EDGE_CONTEXT_ID)'
+        tags: '$(tag)'
+    - task: CmdLine@2
+      inputs:
+        script: |
+          echo 'Showing docker image'
+          docker image ls
+          echo 'Alicloud Registry Login'
+          docker login --username=$(ALICLOUD_ACR_USERNAME) --password=$(ALICLOUD_ACR_PASSWORD) registry-intl.cn-shanghai.aliyuncs.com
+          echo 'Retag docker tag'
+          docker tag $(imageId):$(tag) registry-intl.cn-shanghai.aliyuncs.com/swirehotels-websites/easthotels-uat-sso:$(tag)
+          docker tag $(imageId):$(tag) registry-intl.cn-shanghai.aliyuncs.com/swirehotels-websites/easthotels-uat-sso:latest
+          echo 'Pushing docker image'
+          docker push registry-intl.cn-shanghai.aliyuncs.com/swirehotels-websites/easthotels-uat-sso:$(tag)
+          docker push registry-intl.cn-shanghai.aliyuncs.com/swirehotels-websites/easthotels-uat-sso:latest
