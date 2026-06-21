@@ -63,7 +63,7 @@ class PersonalizePlugin implements MiddlewarePlugin {
 
   async exec(req: NextRequest, res?: NextResponse): Promise<NextResponse> {
     //const { city, country, region } = await geolocation(req);
-    const city = 'Hong Kongr'; 
+    const city = 'undefined'; 
     const country = 'HK';
     const region = 'undefined';
     console.log(`Geolocation for request: city=${city}, country=${country}, region=${region}`);
