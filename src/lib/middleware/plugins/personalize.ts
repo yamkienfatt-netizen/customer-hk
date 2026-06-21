@@ -5,6 +5,7 @@ import clientFactory from 'lib/graphql-client-factory';
 import config from 'temp/config';
 import { siteResolver } from 'lib/site-resolver';
 //import { geolocation } from '@/utilities/headers';
+import { geolocation } from '@vercel/functions';
 
 /**
  * This is the personalize middleware plugin for Next.js.
@@ -63,9 +64,10 @@ class PersonalizePlugin implements MiddlewarePlugin {
 
   async exec(req: NextRequest, res?: NextResponse): Promise<NextResponse> {
     //const { city, country, region } = await geolocation(req);
-    const city = 'undefined'; 
-    const country = 'HK';
-    const region = 'undefined';
+    const { city, country, region } = geolocation(req);
+    //const city = 'undefined'; 
+    //const country = 'HK';
+    //const region = 'undefined';
     console.log(`Geolocation for request: city=${city}, country=${country}, region=${region}`);
     return this.personalizeMiddleware.getHandler()(req, res, {
       geo: { city, country, region },
